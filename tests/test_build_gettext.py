@@ -184,3 +184,37 @@ def test_build_single_pot(app):
          'msgid "Generated section".*'),
         result,
         flags=re.S)
+
+
+def test_catalog_no_duplicate_locations():
+    """Test that Catalog doesn't produce duplicate locations for same message at same location."""
+    from sphinx.builders.gettext import Catalog, MsgOrigin
+    
+    catalog = Catalog()
+    
+    # Add the same message multiple times at the same location (but with different UUIDs)
+    msg = "Test message"
+    origin1 = MsgOrigin("test.rst", 10)
+    origin2 = MsgOrigin("test.rst", 10)  # Same location, different UUID
+    origin3 = MsgOrigin("test.rst", 10)  # Same location, different UUID
+    
+    catalog.add(msg, origin1)
+    catalog.add(msg, origin2) 
+    catalog.add(msg, origin3)
+    
+    # Also add the same message at a different location
+    origin4 = MsgOrigin("test.rst", 20)
+    catalog.add(msg, origin4)
+    
+    # Get the message from the catalog
+    messages = list(catalog)
+    assert len(messages) == 1, f"Expected 1 message, got {len(messages)}"
+    
+    message = messages[0]
+    
+    # Should have 2 unique locations (line 10 and line 20), not 4
+    assert len(message.locations) == 2, f"Expected 2 unique locations, got {len(message.locations)}: {message.locations}"
+    assert message.locations == [("test.rst", 10), ("test.rst", 20)]
+    
+    # Should still have all 4 UUIDs (one for each add operation)
+    assert len(message.uuids) == 4, f"Expected 4 UUIDs, got {len(message.uuids)}"

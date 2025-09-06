@@ -59,7 +59,16 @@ class Catalog:
         for message in self.messages:
             positions = [(source, line) for source, line, uuid in self.metadata[message]]
             uuids = [uuid for source, line, uuid in self.metadata[message]]
-            yield Message(message, positions, uuids)
+            
+            # Remove duplicate positions while preserving order
+            unique_positions = []
+            seen_positions = set()
+            for pos in positions:
+                if pos not in seen_positions:
+                    unique_positions.append(pos)
+                    seen_positions.add(pos)
+            
+            yield Message(message, unique_positions, uuids)
 
 
 class MsgOrigin:
